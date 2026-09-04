@@ -15,7 +15,9 @@
 #     print-mode run cannot give; this exercises visual rung 3 (local HTML).
 # Skill-declared hooks live in the process that invoked the skill, and each
 # resumed print-mode turn is a new process, so the hook is asserted on the
-# invoking turn only.
+# invoking turn only. Every reply is run through the same filler linter the
+# hook uses (block tier), so filler is caught on the resumed turns too. There
+# is no length assertion: a concept takes the words clarity needs.
 #
 # Usage:  tests/e2e.sh [--scenario jackson|materials|all] [--keep]
 # Env:    E2E_WORKDIR  scratch directory (default: mktemp -d)
@@ -53,8 +55,11 @@ bad() { fail=$((fail + 1)); log "  FAIL  $1"; }
 json_field() { node -e 'try{const j=JSON.parse(require("fs").readFileSync(0,"utf8"));const v=j[process.argv[1]];process.stdout.write(v==null?"":String(v))}catch(e){}' "$1"; }
 
 # run "<prompt>" [extra claude args...]  -> sets RESULT and SID, saves transcript
+plan_mtime() { local f; f="$(ls tutor-sessions/*/plan.md 2>/dev/null | head -n 1)"; [ -n "$f" ] && stat -c %Y "$f" 2>/dev/null; }
+
 run() {
   turn=$((turn + 1))
+  PLAN_MTIME_BEFORE="$(plan_mtime)"
   local prompt="$1"; shift
   # The prompt goes first: --allowedTools is variadic and would swallow a
   # trailing positional argument as another tool name.
@@ -82,30 +87,31 @@ run() {
 
 last_line()  { printf '%s\n' "$1" | sed '/^[[:space:]]*$/d' | tail -n 1; }
 has_footer() { last_line "$1" | grep -qE '^[[:space:]*_`]*Tutor Mode: ON'; }
-prose_words() {
-  printf '%s\n' "$1" | node -e '
-    let t=require("fs").readFileSync(0,"utf8").replace(/```[\s\S]*?```/g," ");
-    t=t.split(/\r?\n/).filter(l=>!/^[\s*_`]*Tutor Mode: ON/.test(l)).join(" ");
-    const w=t.match(/[A-Za-z0-9À-￿][^\s]*/g);process.stdout.write(String(w?w.length:0))'
+filler_hits() { # block-tier filler patterns in the reply, footer excluded
+  printf '%s\n' "$1" | sed '/^[[:space:]*_`]*Tutor Mode: ON/d' | node "$scripts/filler-lint.js" - 2>/dev/null | grep -v '^no filler found$' | sed -E 's/^stdin:[0-9]+: //; s/ -> .*//' | tr '\n' ';'
 }
 contains_i()   { printf '%s' "$1" | grep -qiE -- "$2"; }
 plan_file()    { ls tutor-sessions/*/plan.md 2>/dev/null | head -n 1; }
 
 assert_footer()     { if has_footer "$RESULT"; then ok "footer present ($(last_line "$RESULT"))"; else bad "footer missing; last line: $(last_line "$RESULT")"; fi; }
 assert_no_footer()  { if has_footer "$RESULT"; then bad "footer present after exit"; else ok "no footer after exit"; fi; }
-assert_words_le()   { local n; n="$(prose_words "$RESULT")"; if [ "$n" -le "$1" ]; then ok "prose words $n <= $1"; else bad "prose words $n > $1"; fi; }
+assert_clean()      { local h; h="$(filler_hits "$RESULT")"; if [ -z "$h" ]; then ok "no block-tier filler"; else bad "filler: $h"; fi; }
 assert_contains()   { if contains_i "$RESULT" "$1"; then ok "reply mentions /$1/"; else bad "reply lacks /$1/"; fi; }
 assert_lacks()      { if contains_i "$RESULT" "$1"; then bad "reply contains forbidden /$1/"; else ok "reply avoids /$1/"; fi; }
 assert_file()       { if compgen -G "$1" > /dev/null; then ok "file exists: $1"; else bad "file missing: $1"; fi; }
 assert_no_file()    { if compgen -G "$1" > /dev/null; then bad "file should not exist: $1"; else ok "file absent: $1"; fi; }
 assert_plan_has()   { local f; f="$(plan_file)"; if [ -n "$f" ] && grep -qiE -- "$2" "$f"; then ok "plan has $1"; else bad "plan lacks $1 (/$2/)"; fi; }
+assert_plan_touched() { # the contract says the plan is updated before the reply on these turns
+  local now; now="$(plan_mtime)"
+  if [ -n "$now" ] && [ "$now" != "${PLAN_MTIME_BEFORE:-}" ]; then ok "plan file updated on this turn ($1)"; else bad "plan file not updated on this turn ($1)"; fi
+}
 assert_plan_lint()  {
   local f out; f="$(plan_file)"
   if [ -z "$f" ]; then bad "plan lint: no plan file"; return; fi
   if out="$(node "$scripts/plan-lint.js" "$f" 2>&1)"; then ok "plan matches the template shape"; else bad "plan drifted from the template: $(printf '%s' "$out" | tr '\n' ' ')"; fi
 }
 assert_hook_ran()   {
-  if [ -f tutor-sessions/.hook.log ] && grep -qE "inactive|words=" tutor-sessions/.hook.log; then
+  if [ -f tutor-sessions/.hook.log ] && grep -qE "inactive|footer=" tutor-sessions/.hook.log; then
     ok "Stop hook ran inside Claude Code on the invoking turn ($(wc -l < tutor-sessions/.hook.log) log lines)"
   else
     bad "Stop hook left no trace in tutor-sessions/.hook.log on the invoking turn"
@@ -123,10 +129,10 @@ scenario_jackson() {
   log "=== scenario: jackson (no materials) ==="
   local dir="$work/jackson"; rm -rf "$dir"; mkdir -p "$dir/tutor-sessions"; cd "$dir"; SID=""
   run "/1-on-1-tutor-mode Michael Jackson"
-  assert_footer; assert_words_le 300; assert_hook_ran
+  assert_footer; assert_clean; assert_hook_ran
 
   run "Goal: a solid overview of his life and why he mattered culturally. No deadline. I know basically nothing about him. Standard depth. Plan it and show me the outline."
-  assert_footer; assert_words_le 300
+  assert_footer; assert_clean
   assert_file "tutor-sessions/*/plan.md"; assert_file "tutor-sessions/.active"
   for h in "Goal" "Student Profile" "Materials" "Outline" "Current Unit" "Position" "Learn Later" "Misconceptions Caught" "Session Log"; do
     assert_plan_has "heading '# $h'" "^# $h\$"
@@ -134,32 +140,35 @@ scenario_jackson() {
   assert_plan_lint
 
   run "looks good, go"
-  assert_footer; assert_words_le 150; assert_contains "Unit 1/"
+  assert_footer; assert_clean; assert_contains "Unit 1/"
   local chunk1="$RESULT"
 
   run "yeah"
-  assert_footer; assert_words_le 150
+  assert_footer; assert_clean; assert_plan_touched "step marked done"
   if [ "$RESULT" != "$chunk1" ]; then ok "second chunk differs from first"; else bad "second chunk repeats the first"; fi
 
   run "got it. so when jackson won his rings with the bulls, was that before or after thriller?"
-  assert_footer; assert_contains "Jordan"
+  assert_footer; assert_clean; assert_contains "Jordan"
   assert_lacks "great (question|observation|connection|point)"
   assert_lacks "you're (absolutely )?right"
-  assert_plan_has "a logged misconception" "Jordan"
+  assert_plan_touched "misconception logged"
+  if [ -n "$(plan_file)" ] && section_lines "$(plan_file)" "Misconceptions Caught" | grep -qi "Jordan"; then ok "plan logs the misconception under '# Misconceptions Caught'"; else bad "plan's '# Misconceptions Caught' section lacks the Jordan entry"; fi
 
   run "ok makes sense. unrelated but how do vinyl records physically store sound? i want to go deep on that"
-  assert_footer; assert_contains "later|goal"
+  assert_footer; assert_clean; assert_contains "learn later"
+  assert_contains "goal|mattered|overview|won't help|will not help"   # reminds them what they came for
+  assert_contains "Unit 1/"                                          # still on the Jackson unit, not teaching vinyl
 
   run "leave it for later, keep going"
-  assert_footer
+  assert_footer; assert_clean
   assert_plan_has "a vinyl item under Learn Later" "vinyl"
   if node "$scripts/tutor.js" learn-later | grep -qi vinyl; then ok "tutor.js learn-later extracts the item"; else bad "tutor.js learn-later did not find the item"; fi
 
   run "skip quizzes"
-  assert_footer; assert_contains "quizzes off"; assert_plan_has "quizzes: off" "^quizzes: *off"
+  assert_footer; assert_clean; assert_contains "quizzes off"; assert_plan_has "quizzes: off" "^quizzes: *off"
 
   run "where are we"
-  assert_footer; assert_words_le 150
+  assert_footer; assert_clean
 
   run "exit tutor mode"
   assert_no_footer; assert_no_file "tutor-sessions/.active"
@@ -177,7 +186,7 @@ scenario_materials() {
   cp "$here/fixtures/lecture-02-convex-sets.md" "$here/fixtures/hw2.md" materials/
 
   run "/1-on-1-tutor-mode materials/ I need to finish HW2 (materials/hw2.md) by tomorrow with real understanding. I know basic linear algebra. Standard depth. Plan it and show me the outline."
-  assert_footer; assert_words_le 300; assert_hook_ran
+  assert_footer; assert_clean; assert_hook_ran
   assert_file "tutor-sessions/*/plan.md"
   assert_plan_has "the lecture file in Materials" "lecture-02-convex-sets"
   assert_plan_has "the homework file in Materials" "hw2"
@@ -202,10 +211,10 @@ scenario_materials() {
   assert_plan_has "the deadline recorded" "tomorrow|due"
 
   run "go"
-  assert_footer; assert_words_le 150
+  assert_footer; assert_clean
 
   run "can you show me a picture of a convex set next to a non-convex one?"
-  assert_footer; assert_words_le 200
+  assert_footer; assert_clean
   assert_file "tutor-sessions/*/viz/*.html"
   assert_contains "\\.html"
 

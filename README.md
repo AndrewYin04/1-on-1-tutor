@@ -1,10 +1,12 @@
 # 1-on-1 Tutor
 
-A Claude Code skill that turns Claude into a one-on-one tutor: it teaches any
-topic in bite-sized chunks of 3-5 sentences, stops after each one so you can
-confirm or ask, keeps a living lesson plan in a file, corrects you bluntly when
-you have something wrong, and ends every reply with a `Tutor Mode: ON` progress
-footer so you always know where you are without scrolling.
+A Claude Code skill that turns Claude into a one-on-one tutor: it teaches one
+concept per reply, written plainly for a smart high schooler with the
+foundation that concept needs and not one filler sentence, stops after each
+reply so you can confirm or ask, keeps a living lesson plan in a file,
+corrects you bluntly when you have something wrong, and ends every reply with
+a `Tutor Mode: ON` progress footer so you always know where you are without
+scrolling.
 
 Works for course material (lecture slides, syllabi, homework), research topics
 with no materials at all, papers you add mid-way, and codebases.
@@ -78,9 +80,9 @@ What happens:
 1. Intake: at most three questions (goal, deadline, what you know, depth).
 2. Planning: Claude reads any materials, writes
    `tutor-sessions/<slug>/plan.md`, and shows you the outline to confirm.
-3. Teaching: one chunk per reply, ending with "make sense?" or a micro-question.
-   You say "yeah", ask a follow-up, or push back; the next chunk builds on what
-   you confirmed.
+3. Teaching: one concept per reply, as long as clarity needs and no longer,
+   ending with "make sense?" or a micro-question. You say "yeah", ask a
+   follow-up, or push back; the next chunk builds on what you confirmed.
 
 Things you can say at any point:
 
@@ -99,9 +101,14 @@ Things you can say at any point:
 
 ## How it works
 
-- **The contract.** Every reply is one idea in 3-5 sentences, ends with a check,
-  and ends with the footer `Tutor Mode: ON · Unit k/N <title> · step s`. No
-  headings, no long lists, no second paragraph inside a chunk.
+- **The contract.** Every reply teaches one new concept together with the
+  foundation it rests on, ends with a check, and ends with the footer
+  `Tutor Mode: ON · Unit k/N <title> · step s`. There is no sentence or word
+  limit; a concept gets the length clarity needs. What is limited is filler:
+  no sentence that only announces the next one ("this is the subtle part"),
+  no empty clause before a colon, no slogan after a dash, no praise opener, no
+  em-dashes. The rules and rewrites of real replies are in
+  `skills/1-on-1-tutor-mode/references/writing.md`.
 - **The plan file.** `tutor-sessions/<slug>/plan.md` has fixed headings: goal,
   student profile, materials, outline (coarse units with "done when" tests),
   current unit (only that unit expanded into steps), position, Learn Later,
@@ -123,9 +130,11 @@ Things you can say at any point:
   park them under `# Learn Later`. You decide.
 - **Stop hook.** A hook declared in the skill runs `scripts/stop-check.js`
   after every reply while a session is active and blocks a reply that lacks the
-  footer, exceeds 300 prose words, or left the plan file in a shape the tools
-  cannot parse (`scripts/plan-lint.js`), handing Claude the reason so it fixes
-  it. It is inert when no session is active. The hook lives in the Claude Code
+  footer, contains a filler pattern from `scripts/filler-lint.js` (the same
+  linter the [no-filler](https://github.com/AndrewYin04/no-filler) skill
+  ships), or left the plan file in a shape the tools cannot parse
+  (`scripts/plan-lint.js`), handing Claude the reason so it fixes it. It is
+  inert when no session is active. The hook lives in the Claude Code
   process that invoked the skill, so it covers a whole interactive session;
   a scripted `claude -p --resume` turn is a new process and runs without it.
 - **Visuals.** When a picture helps (a set in the plane, a function's shape, a
@@ -141,7 +150,7 @@ Things you can say at any point:
 │   ├── SKILL.md                  the contract and procedures
 │   ├── references/               plan template, planning guide, visuals guide, examples
 │   ├── assets/viz/               HTML figure templates (JSXGraph, function-plot, Mermaid)
-│   ├── scripts/                  stop-check.js (Stop hook), plan-lint.js, tutor.js (list, learn-later, active, check)
+│   ├── scripts/                  stop-check.js (Stop hook), plan-lint.js, filler-lint.js, tutor.js (list, learn-later, active, check)
 │   └── evals/evals.json          test prompts and assertions in skill-creator format
 ├── tests/e2e.sh                  drives the real `claude -p` entry point end to end
 ├── tests/fixtures/               a small fake lecture and homework
@@ -162,12 +171,16 @@ node ~/.claude/skills/1-on-1-tutor-mode/scripts/tutor.js check
 
 `learn-later` prints every parked topic across sessions, one per line, so you
 can plan a follow-up session from it. `check` lints each plan against the
-template shape.
+template shape. The filler linter the hook uses also runs on any file:
+
+```bash
+node ~/.claude/skills/1-on-1-tutor-mode/scripts/filler-lint.js --all notes.md
+```
 
 ## Test
 
-Fast deterministic checks (hook decisions, plan linter, helpers, template sync)
-need only Node:
+Fast deterministic checks (hook decisions, filler linter, plan linter,
+helpers, template sync) need only Node:
 
 ```bash
 tests/unit.sh

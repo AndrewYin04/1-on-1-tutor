@@ -77,7 +77,8 @@ theorem, a codebase. Still write a plan. Work backwards from the goal:
 
 ## Expanding a unit into steps
 
-Each step is one idea that a 3-5 sentence chunk can carry. Good steps:
+Each step is one idea that a single reply can teach completely, foundation
+included. Good steps:
 
 - one definition, or one property, or one example, or one contrast;
 - one line of a derivation, when the derivation matters;

@@ -10,11 +10,17 @@ Read `README.md` before working here and keep it current (it says so itself).
   `~/.claude/skills/`; everything else in the repo supports it.
 - The skill's behavior is enforced two ways: the written contract in
   `SKILL.md`, and a Stop hook (`scripts/stop-check.js`) declared in the skill
-  frontmatter that blocks replies missing the footer, over 300 prose words, or
-  leaving `plan.md` off the template shape (`scripts/plan-lint.js`) while
-  `tutor-sessions/.active` exists in the working directory. Skill hooks live in
-  the invoking process, so `claude -p --resume` turns run without the hook;
-  the e2e test therefore checks the hook on the invoking turn only.
+  frontmatter that blocks replies missing the footer, containing a block-tier
+  filler pattern (`scripts/filler-lint.js`), or leaving `plan.md` off the
+  template shape (`scripts/plan-lint.js`) while `tutor-sessions/.active`
+  exists in the working directory. There is no length rule anywhere: a reply
+  is as long as its one concept needs. Skill hooks live in the invoking
+  process, so `claude -p --resume` turns run without the hook; the e2e test
+  checks the hook on the invoking turn only and lints every reply itself.
+- `scripts/filler-lint.js` is a verbatim copy of the same file in the
+  `no-filler` repo (https://github.com/AndrewYin04/no-filler), which is the
+  canonical one. Change it there and copy it here; `tests/unit.sh` exercises
+  the copy.
 
 ## Essential commands
 
@@ -29,12 +35,13 @@ tests/e2e.sh --scenario jackson --keep
 
 ## Invariants
 
-1. `SKILL.md` stays front-loaded and under about 20 KB: Claude Code keeps
-   only the first 5,000 tokens of an invoked skill after context compaction,
-   and never re-reads the file mid-session, so the contract must be standing
-   instructions near the top. The embedded plan template is last on purpose;
-   it is the part compaction may drop once the plan file exists. Detail goes
-   in `references/`. `tests/unit.sh` checks the size.
+1. `SKILL.md` stays front-loaded: Claude Code keeps only the first 5,000
+   tokens of an invoked skill after context compaction and never re-reads the
+   file mid-session, so the contract must be standing instructions near the
+   top. Everything before `## Plan template` must fit in that window (under
+   about 19.5 KB); the embedded template is last on purpose, the part
+   compaction may drop once the plan file exists. Detail goes in
+   `references/`. `tests/unit.sh` checks both the boundary and the total.
 2. Plan headings and header fields are fixed and exact; `scripts/plan-lint.js`
    is the single definition of that shape, used by the hook, `tutor.js check`,
    and the tests. Change the template and the linter together.

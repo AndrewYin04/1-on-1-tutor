@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Deterministic checks that need no Claude session (seconds, not minutes):
 #   - the Stop hook's decisions on synthetic inputs
+#   - the filler linter on known-bad and known-clean sentences, and on the
+#     skill's own reference prose
 #   - the plan linter and the tutor.js helpers on fixture plans
 #   - the plan template embedded in SKILL.md matches references/plan-template.md
 #   - SKILL.md frontmatter still carries the fields the skill depends on
@@ -25,6 +27,9 @@ hook() { # hook <cwd> <message> -> exit code
   printf '{"cwd":"%s","last_assistant_message":%s}' "$(winpath "$1")" "$(node -e 'process.stdout.write(JSON.stringify(process.argv[1]))' "$2")" | node "$scripts/stop-check.js" 2>/dev/null
   echo $?
 }
+hook_stderr() { # hook_stderr <cwd> <message> -> the block reason
+  printf '{"cwd":"%s","last_assistant_message":%s}' "$(winpath "$1")" "$(node -e 'process.stdout.write(JSON.stringify(process.argv[1]))' "$2")" | node "$scripts/stop-check.js" 2>&1 >/dev/null
+}
 expect() { # expect <label> <actual> <wanted>
   if [ "$2" = "$3" ]; then ok "$1 (exit $2)"; else bad "$1 (exit $2, wanted $3)"; fi
 }
@@ -37,10 +42,16 @@ echo demo > "$d/tutor-sessions/.active"
 expect "missing footer blocks" "$(hook "$d" "A chunk. Make sense?")" 2
 expect "good chunk allowed" "$(hook "$d" $'A chunk. Make sense?\n\nTutor Mode: ON · Unit 1/4 Convex sets · step 2')" 0
 expect "italic footer allowed" "$(hook "$d" $'A chunk.\n\n_Tutor Mode: ON · planning_')" 0
-long="$(node -e 'process.stdout.write(Array(320).fill("word").join(" "))')"
-expect "320 prose words blocks" "$(hook "$d" "$long"$'\n\nTutor Mode: ON · planning')" 2
-code="$(node -e 'process.stdout.write("```\n"+Array(10).fill("x = "+Array(40).fill("w").join(" ")).join("\n")+"\n```")')"
-expect "code fence not counted" "$(hook "$d" $'Here is the function.\n'"$code"$'\nMake sense?\n\nTutor Mode: ON · Unit 2/5 Parser · step 1')" 0
+long="$(node -e 'process.stdout.write(Array(60).fill("The segment between any two points of the set stays inside the set.").join(" "))')"
+expect "a long clean reply is allowed (no length cap)" "$(hook "$d" "$long"$'\n\nMake sense?\n\nTutor Mode: ON · planning')" 0
+expect "praise opener blocks" "$(hook "$d" $'Great question! The disk is convex. Make sense?\n\nTutor Mode: ON · planning')" 2
+expect "announcing sentence blocks" "$(hook "$d" $'This is the subtle part, and it is where the slide slows down. The disk is convex.\n\nTutor Mode: ON · planning')" 2
+expect "empty clause before a colon blocks" "$(hook "$d" $'The answer is genuinely strange the first time you hear it: the Fed creates the money.\n\nTutor Mode: ON · planning')" 2
+expect "dash slogan blocks" "$(hook "$d" $'They buy bonds to hit the target — the bond operations are the tool, the rate is the dial.\n\nTutor Mode: ON · planning')" 2
+expect "em-dash blocks" "$(hook "$d" $'A disk — the filled circle — is convex.\n\nTutor Mode: ON · planning')" 2
+expect "dash inside a code fence is allowed" "$(hook "$d" $'Run it like this.\n```\ngit log --oneline\n```\nMake sense?\n\nTutor Mode: ON · Unit 2/5 Parser · step 1')" 0
+reason="$(hook_stderr "$d" $'Great question! The disk is convex.\n\nTutor Mode: ON · planning')"
+if printf '%s' "$reason" | grep -q 'filler: "Great question" (praise-opener'; then ok "block reason quotes the flagged sentence and its pattern"; else bad "block reason unhelpful: $reason"; fi
 sed -i 's/^status: active/- status: active/' "$d/tutor-sessions/demo/plan.md"
 expect "drifted plan blocks" "$(hook "$d" $'A chunk.\n\nTutor Mode: ON · planning')" 2
 rm "$d/tutor-sessions/demo/plan.md"
@@ -49,6 +60,32 @@ r="$(printf '{"cwd":"%s","stop_hook_active":true,"last_assistant_message":"no fo
 expect "retry pass never blocks" "$r" 0
 r="$(printf 'not json' | node "$scripts/stop-check.js" 2>/dev/null; echo $?)"
 expect "garbage input allowed" "$r" 0
+
+echo "=== filler linter ==="
+bad_lines=(
+  "This is the subtle part, and it's where the slide slows down."
+  "Now the part you actually asked, which I've been asserting without proving: why does the quantity of money move the rate?"
+  "It's not about the money; it's about the rate."
+  "Let's unpack this."
+  "Interestingly, the disk is convex."
+  "The easy half was the proof -- the hard half was the intuition."
+)
+for s in "${bad_lines[@]}"; do
+  if printf '%s\n' "$s" | node "$scripts/filler-lint.js" - >/dev/null; then bad "linter missed: $s"; else ok "linter flags: ${s:0:60}"; fi
+done
+clean_lines=(
+  "The Fed sets the overnight rate directly, and banks lend to each other at that rate."
+  "A square is convex: the segment between any two of its points stays inside it."
+  "Slides 1-5 cover cones; slides 6-11 cover affine sets."
+  "> This is the subtle part, quoted as an example inside a blockquote."
+)
+for s in "${clean_lines[@]}"; do
+  if printf '%s\n' "$s" | node "$scripts/filler-lint.js" - >/dev/null; then ok "linter passes: ${s:0:60}"; else bad "linter false positive: $s"; fi
+done
+for f in references/examples.md references/writing.md references/planning.md references/visualization.md; do
+  if node "$scripts/filler-lint.js" "$skill/$f" >/dev/null; then ok "$f has no block-tier filler"; else bad "$f contains block-tier filler:"; node "$scripts/filler-lint.js" "$skill/$f" | head -n 5; fi
+done
+if node "$scripts/filler-lint.js" "$repo/README.md" >/dev/null; then ok "README.md has no block-tier filler"; else bad "README.md contains block-tier filler:"; node "$scripts/filler-lint.js" "$repo/README.md" | head -n 5; fi
 
 echo "=== plan linter and helpers ==="
 d="$tmp/plans"; mkdir -p "$d/tutor-sessions/good" "$d/tutor-sessions/drift"
@@ -65,7 +102,7 @@ cat > "$d/tutor-sessions/drift/plan.md" <<'EOF'
 # Learn Later
 
 - A wrapped item that continues
-  on a second line — why deferred: test — fits after: unit 2 — raised: 2026-09-03
+  on a second line, why deferred: test, fits after: unit 2, raised: 2026-09-03
 
 # Position
 
@@ -91,8 +128,14 @@ for key in "name: 1-on-1-tutor-mode" "disable-model-invocation: true" "allowed-t
   if printf '%s\n' "$front" | grep -q -- "$key"; then ok "frontmatter has $key"; else bad "frontmatter lacks $key"; fi
 done
 if grep -qE '^\s*!`cat ' "$skill/SKILL.md"; then bad "SKILL.md injects a file with cat (injected commands abort the skill when permission is not pre-granted)"; else ok "no file-injecting commands in SKILL.md"; fi
-lines="$(wc -l < "$skill/SKILL.md")"; bytes="$(wc -c < "$skill/SKILL.md")"
-if [ "$bytes" -le 20000 ]; then ok "SKILL.md is $lines lines, $bytes bytes (compaction keeps the first ~5,000 tokens)"; else bad "SKILL.md is $bytes bytes; the contract may fall outside the 5,000-token compaction budget"; fi
+if grep -qE '3-5 sentences|word cap|prose words' "$skill/SKILL.md" "$skill/references/"*.md "$repo/README.md"; then bad "a length rule survives in the skill or README"; else ok "no length rule in the skill or README"; fi
+# Compaction keeps the first 5,000 tokens of an invoked skill (about 19,500
+# bytes of English markdown). Everything before the embedded plan template
+# must fit in that window; the template is the tail that may be dropped.
+bytes="$(wc -c < "$skill/SKILL.md")"
+head_bytes="$(grep -b '^## Plan template' "$skill/SKILL.md" | head -n 1 | cut -d: -f1)"
+if [ -n "$head_bytes" ] && [ "$head_bytes" -le 19500 ]; then ok "SKILL.md contract ends at byte $head_bytes of $bytes (inside the ~5,000-token compaction window)"; else bad "SKILL.md contract runs to byte ${head_bytes:-?} of $bytes; trim so the part before '## Plan template' is under 19,500 bytes"; fi
+if [ "$bytes" -le 22500 ]; then ok "SKILL.md total is $bytes bytes"; else bad "SKILL.md total is $bytes bytes; over 22,500, move detail to references/"; fi
 
 echo ""
 echo "=== result: $pass passed, $fail failed ==="

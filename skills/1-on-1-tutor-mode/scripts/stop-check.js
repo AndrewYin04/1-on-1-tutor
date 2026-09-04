@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 // Stop hook for 1-on-1 tutor mode.
 //
-// Claude Code runs this when the assistant finishes a turn. It enforces the two
+// Claude Code runs this when the assistant finishes a turn. It enforces the
 // deterministic parts of the tutor contract while a session is active:
 //   1. the reply ends with a "Tutor Mode: ON" footer line
-//   2. the reply is a chunk, not a wall (prose word cap, code fences excluded)
+//   2. the reply contains none of the block-tier filler patterns from
+//      filler-lint.js (announcing sentences, empty clauses before a colon,
+//      dash slogans, aphorisms, praise openers, dashes)
 //   3. the active session's plan.md still has the template's shape
-// It is inert when no session is active (no tutor-sessions/.active in cwd),
-// when the input lacks last_assistant_message, or on the retry pass
+// There is no length check: a concept takes as many sentences as clarity
+// needs. The hook is inert when no session is active (no tutor-sessions/.active
+// in cwd), when the input lacks last_assistant_message, or on the retry pass
 // (stop_hook_active), so it can never trap a session in a loop.
 //
 // Exit 2 + stderr = block and hand the reason to the model. Exit 0 = allow.
@@ -16,9 +19,10 @@
 const fs = require('fs');
 const path = require('path');
 const { lintPlan } = require('./plan-lint.js');
+const { lintText } = require('./filler-lint.js');
 
-const WORD_CAP = Number(process.env.TUTOR_WORD_CAP || 300);
 const FOOTER_RE = /^[\s*_`]*Tutor Mode: ON\b[^\n]*$/;
+const MAX_SHOWN = 5;
 
 function readStdin() {
   try {
@@ -36,10 +40,6 @@ function debug(cwd, line) {
   } catch (_) { /* ignore */ }
 }
 
-function stripCodeFences(text) {
-  return text.replace(/```[\s\S]*?```/g, ' ');
-}
-
 function lastNonEmptyLine(text) {
   const lines = text.split(/\r?\n/);
   for (let i = lines.length - 1; i >= 0; i--) {
@@ -48,13 +48,8 @@ function lastNonEmptyLine(text) {
   return '';
 }
 
-function countProseWords(text) {
-  const body = stripCodeFences(text)
-    .split(/\r?\n/)
-    .filter((l) => !FOOTER_RE.test(l))
-    .join(' ');
-  const words = body.match(/[A-Za-z0-9À-￿][^\s]*/g);
-  return words ? words.length : 0;
+function withoutFooter(text) {
+  return text.split(/\r?\n/).filter((l) => !FOOTER_RE.test(l)).join('\n');
 }
 
 function main() {
@@ -91,13 +86,15 @@ function main() {
       '(or `Tutor Mode: ON · planning`). Append it now and stop.'
     );
   }
-  const words = countProseWords(msg);
-  if (words > WORD_CAP) {
+  let filler = [];
+  try { filler = lintText(withoutFooter(msg), { tiers: ['block'] }); } catch (_) { /* ignore */ }
+  if (filler.length > 0) {
+    const shown = filler.slice(0, MAX_SHOWN)
+      .map((h) => `"${h.match}" (${h.name}: ${h.fix})`).join('; ');
+    const more = filler.length > MAX_SHOWN ? `; and ${filler.length - MAX_SHOWN} more` : '';
     problems.push(
-      `too long: ${words} prose words (cap ${WORD_CAP}). The contract is one ` +
-      'chunk of 3-5 sentences per reply. Reply with one sentence naming the ' +
-      'single idea the student should focus on from the above, one check ' +
-      'question, and the footer. Keep every later reply to one chunk.'
+      `filler: ${shown}${more}. Rewrite those sentences so each states a fact, ` +
+      'an example, or the check, keep everything else, then stop.'
     );
   }
   let slug = '';
@@ -123,7 +120,7 @@ function main() {
       }
     }
   }
-  debug(cwd, `words=${words} footer=${hasFooter} problems=${problems.length}`);
+  debug(cwd, `footer=${hasFooter} filler=${filler.length} problems=${problems.length}`);
   if (problems.length === 0) process.exit(0);
   process.stderr.write('Tutor Mode contract violation. ' + problems.join(' ') + '\n');
   process.exit(2);

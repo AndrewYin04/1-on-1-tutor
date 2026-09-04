@@ -4,14 +4,15 @@
     {
       "id": 1,
       "prompt": "/1-on-1-tutor-mode Michael Jackson. Goal: a solid overview of his life and why he mattered culturally, no deadline, I know basically nothing, standard depth. Plan it and show me the outline, then start.",
-      "expected_output": "An intake-free plan (the prompt already gives goal, deadline, prior knowledge, depth), a plan file at tutor-sessions/<slug>/plan.md with the fixed headings, a short outline of unit titles, and every reply ending with the Tutor Mode footer. The first teaching reply is one chunk of 3-5 sentences ending with a check question.",
+      "expected_output": "An intake-free plan (the prompt already gives goal, deadline, prior knowledge, depth), a plan file at tutor-sessions/<slug>/plan.md with the fixed headings, a short outline of unit titles, and every reply ending with the Tutor Mode footer. The first teaching reply teaches exactly one concept with the foundation it needs, in as many plain sentences as that takes, with no filler sentence, and ends with a check question.",
       "files": [],
       "expectations": [
         "Every assistant reply ends with a line beginning 'Tutor Mode: ON'",
         "A file matching tutor-sessions/*/plan.md exists and contains the headings '# Goal', '# Outline', '# Current Unit', '# Position', '# Learn Later', '# Misconceptions Caught', '# Session Log'",
         "tutor-sessions/.active exists and contains the session slug",
         "The outline reply lists unit titles one per line with no explanatory paragraphs",
-        "The first teaching reply contains at most 150 prose words and ends with a question"
+        "The first teaching reply introduces exactly one new concept, defines every term before using it, and ends with a question",
+        "No reply contains a praise opener, an announcing sentence such as 'this is the subtle part', an empty clause before a colon, an em-dash, or a slogan restating the point (node scripts/filler-lint.js on the reply reports nothing)"
       ]
     },
     {
