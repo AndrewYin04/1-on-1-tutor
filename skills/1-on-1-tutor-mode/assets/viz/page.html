@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<!--
+  Tutor-mode figure skeleton (visual rung 3: local HTML file opened in a browser).
+  Replace every {{PLACEHOLDER}}. Keep the page self-contained: inline SVG or one
+  pinned CDN library. Math: inline \( ... \), display $$ ... $$ (KaTeX auto-render).
+  See convex-set.html, function-plot.html, graph.html next to this file for the
+  three most common figures already wired up.
+-->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.18.5/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.18.5/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.18.5/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'\\(',right:'\\)',display:false}]})"></script>
+<style>
+  :root { color-scheme: light dark; --fg:#1f1f1e; --muted:#6b6a66; --bg:#fbfaf7; --panel:#ffffff; --border:#d9d7cf; --accent:#534AB7; --ok:#1D9E75; --bad:#E24B4A; }
+  @media (prefers-color-scheme: dark) { :root { --fg:#ece9e0; --muted:#a3a19a; --bg:#1a1a19; --panel:#242423; --border:#3b3a37; } }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:24px 16px 48px; }
+  h1 { font-size:20px; font-weight:500; margin:0 0 4px; }
+  .caption { color:var(--muted); margin:0 0 16px; }
+  .figure { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; overflow:auto; }
+  .controls { display:flex; flex-wrap:wrap; gap:12px 20px; align-items:center; margin-top:12px; }
+  .controls label { display:flex; align-items:center; gap:8px; font-size:14px; color:var(--muted); }
+  .readout { font-variant-numeric:tabular-nums; min-width:3ch; color:var(--fg); }
+  footer { color:var(--muted); font-size:13px; margin-top:16px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>{{TITLE}}</h1>
+  <p class="caption">{{ONE-LINE CAPTION, or delete this paragraph}}</p>
+  <div class="figure" id="figure">
+    {{FIGURE: an inline <svg viewBox="0 0 700 400" width="100%">, a library container div, or a Mermaid <pre class="mermaid"> block}}
+  </div>
+  <footer>Tutor Mode figure · {{SESSION SLUG}} · {{NN}}</footer>
+</main>
+</body>
+</html>

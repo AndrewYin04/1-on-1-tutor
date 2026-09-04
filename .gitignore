@@ -1,0 +1,10 @@
+# Lesson state written by the skill when it is run inside this repo
+tutor-sessions/
+
+# skill-creator eval workspaces
+*-workspace/
+
+# Node and editor noise
+node_modules/
+.DS_Store
+Thumbs.db

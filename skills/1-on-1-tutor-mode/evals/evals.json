@@ -1,0 +1,72 @@
+{
+  "skill_name": "1-on-1-tutor-mode",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/1-on-1-tutor-mode Michael Jackson. Goal: a solid overview of his life and why he mattered culturally, no deadline, I know basically nothing, standard depth. Plan it and show me the outline, then start.",
+      "expected_output": "An intake-free plan (the prompt already gives goal, deadline, prior knowledge, depth), a plan file at tutor-sessions/<slug>/plan.md with the fixed headings, a short outline of unit titles, and every reply ending with the Tutor Mode footer. The first teaching reply is one chunk of 3-5 sentences ending with a check question.",
+      "files": [],
+      "expectations": [
+        "Every assistant reply ends with a line beginning 'Tutor Mode: ON'",
+        "A file matching tutor-sessions/*/plan.md exists and contains the headings '# Goal', '# Outline', '# Current Unit', '# Position', '# Learn Later', '# Misconceptions Caught', '# Session Log'",
+        "tutor-sessions/.active exists and contains the session slug",
+        "The outline reply lists unit titles one per line with no explanatory paragraphs",
+        "The first teaching reply contains at most 150 prose words and ends with a question"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "We are in tutor mode on Michael Jackson, unit 1 (early life and the Jackson 5). The student says: 'got it. so when jackson won his rings with the bulls, was that before or after thriller?'",
+      "expected_output": "A blunt correction: the student has confused Michael Jordan with Michael Jackson. The reply names the confusion in its first sentence, gives the correct facts for both, returns to the current step, and carries the footer. No praise opener.",
+      "files": [],
+      "expectations": [
+        "The reply mentions Michael Jordan by name and says the student confused the two",
+        "The reply does not contain 'great question', 'great observation', 'great connection', or 'you're right'",
+        "The reply returns to the current step of the current unit",
+        "The plan's '# Misconceptions Caught' section gains an entry",
+        "The reply ends with a 'Tutor Mode: ON' footer"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "/1-on-1-tutor-mode evals/files/ I need to finish HW2 (evals/files/hw2.md) by tomorrow with real understanding. I know basic linear algebra. Standard depth. Plan it and show me the outline.",
+      "expected_output": "The plan's Materials table lists the lecture file as must-cover and the homework as the source of 'done when' tests. All four lecture topics (cones, affine sets, convex sets, separating hyperplanes) are units in the outline with slide ranges. Because the homework is due tomorrow and only needs convex sets and separating hyperplanes, those two come first and the cones and affine-sets units follow marked '(after deadline)'; nothing from the lecture is moved to Learn Later. The plan keeps the template's header fields and headings.",
+      "files": ["evals/files/lecture-02-convex-sets.md", "evals/files/hw2.md"],
+      "expectations": [
+        "The plan's '# Materials' table names both files",
+        "The '# Outline' section contains units for cones, affine sets, convex sets, and separating hyperplanes; none of them is under '# Learn Later'",
+        "Convex sets comes before separating hyperplanes, and cones comes before affine sets (the lecture's relative order within each group)",
+        "Each outline unit line includes a 'done when' test and a source with slide numbers",
+        "The '# Goal' section records the deadline as tomorrow",
+        "node scripts/plan-lint.js on the plan reports no problems",
+        "The reply ends with a 'Tutor Mode: ON' footer"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "We are in tutor mode on convex sets for HW2 due tomorrow, unit 3 of 5. The student says: 'wait, how does the simplex method actually pivot? like the tableau mechanics, go deep on that'",
+      "expected_output": "A rabbit-hole check: simplex pivoting is not needed for HW2, so the tutor reminds the student of the goal and deadline, offers to put it under Learn Later, and lets the student decide. If the student agrees, the plan's '# Learn Later' section gains a bullet with why and where it fits.",
+      "files": [],
+      "expectations": [
+        "The reply mentions the goal or the deadline and offers to defer the topic",
+        "The reply does not start teaching simplex pivoting",
+        "The reply asks the student to decide",
+        "After the student says 'later', the plan's '# Learn Later' section contains a bullet mentioning simplex",
+        "The reply ends with a 'Tutor Mode: ON' footer"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "We are in tutor mode on convex sets, unit 2 step 3. The student says: 'skip quizzes, i'm in a rush' and then 'where are we' and then 'exit tutor mode'.",
+      "expected_output": "The plan header switches to quizzes: off and the footer shows '· quizzes off'; 'where are we' gets three lines (goal, position, next) plus footer; the exit reply saves position and session log, deletes tutor-sessions/.active, tells how to resume, and has no footer.",
+      "files": [],
+      "expectations": [
+        "After 'skip quizzes', the plan contains 'quizzes: off' and the footer contains 'quizzes off'",
+        "The 'where are we' reply is at most three lines of content plus the footer",
+        "After 'exit tutor mode', tutor-sessions/.active does not exist",
+        "The exit reply names the resume command '/1-on-1-tutor-mode resume <slug>'",
+        "The exit reply has no 'Tutor Mode: ON' footer"
+      ]
+    }
+  ]
+}
