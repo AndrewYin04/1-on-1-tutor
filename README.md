@@ -107,7 +107,7 @@ Things you can say at any point:
   limit; a concept gets the length clarity needs. What is limited is filler:
   no sentence that only announces the next one ("this is the subtle part"),
   no empty clause before a colon, no slogan after a dash, no praise opener, no
-  em-dashes. The rules and rewrites of real replies are in
+  em-dashes inside a sentence. The rules and rewrites of real replies are in
   `skills/1-on-1-tutor-mode/references/writing.md`.
 - **The plan file.** `tutor-sessions/<slug>/plan.md` has fixed headings: goal,
   student profile, materials, outline (coarse units with "done when" tests),

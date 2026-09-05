@@ -48,7 +48,8 @@ expect "praise opener blocks" "$(hook "$d" $'Great question! The disk is convex.
 expect "announcing sentence blocks" "$(hook "$d" $'This is the subtle part, and it is where the slide slows down. The disk is convex.\n\nTutor Mode: ON · planning')" 2
 expect "empty clause before a colon blocks" "$(hook "$d" $'The answer is genuinely strange the first time you hear it: the Fed creates the money.\n\nTutor Mode: ON · planning')" 2
 expect "dash slogan blocks" "$(hook "$d" $'They buy bonds to hit the target — the bond operations are the tool, the rate is the dial.\n\nTutor Mode: ON · planning')" 2
-expect "em-dash blocks" "$(hook "$d" $'A disk — the filled circle — is convex.\n\nTutor Mode: ON · planning')" 2
+expect "em-dash inside a sentence blocks" "$(hook "$d" $'A disk — the filled circle — is convex.\n\nTutor Mode: ON · planning')" 2
+expect "dash after a bold list label is allowed" "$(hook "$d" $'Two sets:\n\n- **Disk** — every segment stays inside.\n- **Crescent** — the segment between the tips leaves it.\n\nMake sense?\n\nTutor Mode: ON · planning')" 0
 expect "dash inside a code fence is allowed" "$(hook "$d" $'Run it like this.\n```\ngit log --oneline\n```\nMake sense?\n\nTutor Mode: ON · Unit 2/5 Parser · step 1')" 0
 reason="$(hook_stderr "$d" $'Great question! The disk is convex.\n\nTutor Mode: ON · planning')"
 if printf '%s' "$reason" | grep -q 'filler: "Great question" (praise-opener'; then ok "block reason quotes the flagged sentence and its pattern"; else bad "block reason unhelpful: $reason"; fi

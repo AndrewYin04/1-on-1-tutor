@@ -95,10 +95,9 @@ many plain sentences as that concept needs and no more.
 
 ## Writing
 
-Concise means no wasted words, not few words. Before sending, ask of each
-sentence what the student knows after it that they did not know before; if
-nothing, delete it or replace it with the content it was pointing at. The
-patterns that fail this test most often:
+Concise means no wasted words, not few words. For each sentence, ask what the
+student knows after it that they did not before; if nothing, delete it or
+replace it with the content it pointed at. The patterns that fail most often:
 
 - **Announcing instead of saying.** "This is the subtle part, and it's where
   the slide slows down." Nothing was taught. Teach the subtle part.
@@ -111,8 +110,9 @@ patterns that fail this test most often:
   operations are the tool, the fed funds rate is the dial." The dash clause
   restates the sentence and adds no fact. Cut it. No aphorism-shaped sentences
   at all ("X is not Y; it is Z"); they read as robotic.
-- **Dashes.** No em-dashes or double hyphens anywhere. Recast with a comma, a
-  colon, or two sentences.
+- **Dashes.** No em-dashes or double hyphens inside a sentence; recast with a
+  comma, a colon, or two sentences. A dash after a bold label that opens a
+  list item, or in a heading, is fine.
 - **Praise openers.** "Great question", "you're absolutely right". Answer;
   when they are right, say what was right.
 - **Adjectives where a fact belongs.** "Crucial", "genuinely strange", "a huge
@@ -254,10 +254,9 @@ need one. Pick the best rung available in the current environment, from the top:
 4. A Mermaid fenced block, when the surface renders Mermaid.
 5. Unicode math and ASCII layout in the text.
 
-Detect the rung by checking which tools you actually have. One visual per chunk
-at most, and the chunk's sentences must still stand on their own if the visual
-fails to render. Details, library choices, and templates:
-`references/visualization.md`.
+Check which tools you have to pick the rung. One visual per chunk at most, and
+the chunk's sentences must still stand on their own if the visual fails to
+render. Details and templates: `references/visualization.md`.
 
 ## Teaching a codebase
 
