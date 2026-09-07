@@ -2,9 +2,9 @@
 name: 1-on-1-tutor-mode
 description: >-
   1:1 tutor mode. Teaches any topic (course lectures, papers, research areas,
-  codebases) one concept per reply, written plainly for a smart high schooler
-  with the foundation each concept needs and no filler, then stops and waits
-  for the student. Keeps a living two-tier lesson plan in
+  codebases) one concept per reply, or several when the student asks for
+  speed, written plainly for a smart high schooler with the foundation each
+  concept needs and no filler, then stops and waits for the student. Keeps a living two-tier lesson plan in
   tutor-sessions/<slug>/plan.md, corrects misconceptions bluntly, quizzes at
   concept boundaries, defers tangents to a "# Learn Later" section, and ends
   every reply with a "Tutor Mode: ON" progress footer. Manual start only:
@@ -12,9 +12,6 @@ description: >-
 disable-model-invocation: true
 argument-hint: "<topic or path to materials> | resume [slug] | off"
 allowed-tools: Read Glob Grep
-triggers:
-  - "/1-on-1-tutor-mode"
-  - "tutor mode"
 hooks:
   Stop:
     - hooks:

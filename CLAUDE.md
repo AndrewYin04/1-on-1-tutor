@@ -54,9 +54,11 @@ tests/e2e.sh --scenario jackson --keep
    and `examples.md` all encode it; change all of them together.
 4. The Stop hook must be inert without `tutor-sessions/.active` and on the
    retry pass (`stop_hook_active`), so it can never trap a session.
-5. Frontmatter uses only fields Claude Code documents, plus `triggers` and
-   `metadata` for the agent memory standard. Verify any new field against the
-   current docs before adding it.
+5. Frontmatter uses only fields the Claude Code docs define; `tests/unit.sh`
+   checks every key against that list. An unknown key is ignored with no
+   error, so a skill written with one looks configured and is not. `triggers:`
+   was carried here until 2026-09-07 for exactly that reason and did nothing.
+   Verify any new field against the current docs before adding it.
 6. The plan template is embedded in `SKILL.md` (so creating a session needs no
    file read outside the project) and must stay byte-identical to
    `references/plan-template.md`; `tests/unit.sh` diffs them. Never inject

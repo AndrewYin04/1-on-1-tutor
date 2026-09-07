@@ -135,6 +135,15 @@ for key in "name: 1-on-1-tutor-mode" "disable-model-invocation: true" "allowed-t
   if printf '%s\n' "$front" | grep -q -- "$key"; then ok "frontmatter has $key"; else bad "frontmatter lacks $key"; fi
 done
 if grep -qE '^\s*!`cat ' "$skill/SKILL.md"; then bad "SKILL.md injects a file with cat (injected commands abort the skill when permission is not pre-granted)"; else ok "no file-injecting commands in SKILL.md"; fi
+# Claude Code ignores an unknown frontmatter key without an error, so a skill
+# written with one looks configured and is not. This is the documented set
+# (code.claude.com/docs/en/skills, frontmatter reference).
+documented="agent allowed-tools argument-hint arguments background compatibility context description disable-model-invocation disallowed-tools effort hooks license metadata model name paths shell user-invocable when_to_use"
+unknown=""
+for k in $(printf '%s\n' "$front" | grep -E '^[a-z_-]+:' | sed 's/:.*//'); do
+  case " $documented " in *" $k "*) ;; *) unknown="$unknown $k" ;; esac
+done
+if [ -z "$unknown" ]; then ok "frontmatter uses only documented fields"; else bad "undocumented frontmatter key(s):$unknown (Claude Code ignores unknown keys silently)"; fi
 if grep -qE '3-5 sentences|word cap|prose words' "$skill/SKILL.md" "$skill/references/"*.md "$repo/README.md"; then bad "a length rule survives in the skill or README"; else ok "no length rule in the skill or README"; fi
 for f in "$skill/SKILL.md" "$skill/references/planning.md" "$repo/README.md"; do
   if grep -q "dense" "$f"; then ok "$(basename "$f") documents dense pace"; else bad "$(basename "$f") does not mention dense pace"; fi
