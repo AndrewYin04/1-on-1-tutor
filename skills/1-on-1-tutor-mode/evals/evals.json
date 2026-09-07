@@ -32,7 +32,10 @@
       "id": 3,
       "prompt": "/1-on-1-tutor-mode evals/files/ I need to finish HW2 (evals/files/hw2.md) by tomorrow with real understanding. I know basic linear algebra. Standard depth. Plan it and show me the outline.",
       "expected_output": "The plan's Materials table lists the lecture file as must-cover and the homework as the source of 'done when' tests. All four lecture topics (cones, affine sets, convex sets, separating hyperplanes) are units in the outline with slide ranges. Because the homework is due tomorrow and only needs convex sets and separating hyperplanes, those two come first and the cones and affine-sets units follow marked '(after deadline)'; nothing from the lecture is moved to Learn Later. The plan keeps the template's header fields and headings.",
-      "files": ["evals/files/lecture-02-convex-sets.md", "evals/files/hw2.md"],
+      "files": [
+        "evals/files/lecture-02-convex-sets.md",
+        "evals/files/hw2.md"
+      ],
       "expectations": [
         "The plan's '# Materials' table names both files",
         "The '# Outline' section contains units for cones, affine sets, convex sets, and separating hyperplanes; none of them is under '# Learn Later'",
@@ -67,6 +70,21 @@
         "After 'exit tutor mode', tutor-sessions/.active does not exist",
         "The exit reply names the resume command '/1-on-1-tutor-mode resume <slug>'",
         "The exit reply has no 'Tutor Mode: ON' footer"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "We are in tutor mode on Michael Jackson, unit 1 of 9, step 2, pace default. The student says: 'this is too slow, just explain it, cover more at once'",
+      "expected_output": "The plan's pace field becomes dense, confirmed in one sentence, and the reply then teaches several steps of the current unit in one pass as continuous prose rather than one concept. It stops at the unit boundary at the latest, ends with a single check for the whole reply rather than one per idea, and carries the footer. The plan marks every step the reply covered and moves '# Position' to the last one.",
+      "files": [],
+      "expectations": [
+        "The plan contains 'pace: dense'",
+        "The reply introduces more than one new concept, in dependency order",
+        "The reply ends with one check, not a check after each concept",
+        "The reply does not cross into a later unit than the current one",
+        "The plan's '# Current Unit' marks every step the reply covered as [x] and '# Position' names the last of them",
+        "Every term is still defined before it is used and the reply contains no filler",
+        "The reply ends with a 'Tutor Mode: ON' footer"
       ]
     }
   ]

@@ -111,6 +111,12 @@ Unit 1/1
 EOF
 if node "$scripts/plan-lint.js" "$d/tutor-sessions/good/plan.md" >/dev/null; then ok "filled template passes lint"; else bad "filled template fails lint"; fi
 if node "$scripts/plan-lint.js" "$d/tutor-sessions/drift/plan.md" >/dev/null; then bad "drifted plan passes lint"; else ok "drifted plan fails lint"; fi
+for p in default dense slow fast; do
+  sed "s/^pace: .*/pace: $p/" "$d/tutor-sessions/good/plan.md" > "$tmp/pace.md"
+  if node "$scripts/plan-lint.js" "$tmp/pace.md" >/dev/null; then ok "plan linter accepts pace: $p"; else bad "plan linter rejects pace: $p"; fi
+done
+sed 's/^pace: .*/pace: whenever/' "$d/tutor-sessions/good/plan.md" > "$tmp/pace.md"
+if node "$scripts/plan-lint.js" "$tmp/pace.md" >/dev/null; then bad "plan linter accepts a bogus pace"; else ok "plan linter rejects a bogus pace value"; fi
 lint_out="$(node "$scripts/plan-lint.js" "$skill/references/plan-template.md" 2>/dev/null)"
 if printf '%s' "$lint_out" | grep -q "placeholder"; then ok "linter flags leftover placeholders"; else bad "linter misses leftover placeholders"; fi
 out="$(node "$scripts/tutor.js" learn-later --dir "$d")"
@@ -130,6 +136,9 @@ for key in "name: 1-on-1-tutor-mode" "disable-model-invocation: true" "allowed-t
 done
 if grep -qE '^\s*!`cat ' "$skill/SKILL.md"; then bad "SKILL.md injects a file with cat (injected commands abort the skill when permission is not pre-granted)"; else ok "no file-injecting commands in SKILL.md"; fi
 if grep -qE '3-5 sentences|word cap|prose words' "$skill/SKILL.md" "$skill/references/"*.md "$repo/README.md"; then bad "a length rule survives in the skill or README"; else ok "no length rule in the skill or README"; fi
+for f in "$skill/SKILL.md" "$skill/references/planning.md" "$repo/README.md"; do
+  if grep -q "dense" "$f"; then ok "$(basename "$f") documents dense pace"; else bad "$(basename "$f") does not mention dense pace"; fi
+done
 # Compaction keeps the first 5,000 tokens of an invoked skill (about 19,500
 # bytes of English markdown). Everything before the embedded plan template
 # must fit in that window; the template is the tail that may be dropped.

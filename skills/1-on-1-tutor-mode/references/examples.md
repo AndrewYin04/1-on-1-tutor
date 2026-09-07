@@ -175,6 +175,49 @@ number of them. Clear why the segment never has to leave either set?
 
 Tutor Mode: ON · Unit 4/5 Operations preserving convexity · step 3
 
+## Switching to dense, and back
+
+S: this is too slow, just explain it, cover more at once
+
+T: Dense from here, and `pace: dense` is in the plan. Say "one at a time" to
+go back.
+
+Weak duality is the claim that d(λ) ≤ p\* for every λ ≥ 0, where p\* is the
+optimal value of the original problem. You already have the two facts it needs
+from step 3: L(x, λ) ≤ f(x) at any feasible x, and d(λ) is the minimum of L
+over all x. Chain them. Take any feasible x. Then d(λ) = min over x' of
+L(x', λ) ≤ L(x, λ) ≤ f(x), because a minimum over all x' is at most the value
+at the particular x. That holds for every feasible x, so it holds for the best
+one, which gives d(λ) ≤ p\*. Two lines, no assumptions about convexity.
+
+The gap p\* − d(λ\*) at the best λ is the duality gap, and it is what strong
+duality is about: the gap is zero. Weak duality says the gap is never
+negative, which is why any λ you can evaluate gives a certified lower bound on
+a minimization you may not be able to solve. That is the practical use, and it
+is why solvers report a dual bound while they run.
+
+Slater's condition is the usual reason the gap closes: if the problem is
+convex and there is a strictly feasible point, one x with g(x) < 0 rather than
+g(x) = 0, then strong duality holds. Convexity alone is not enough, which is
+the part people skip.
+
+For your HW3 problem 2, that means you compute d(λ), maximize it, and check
+Slater to claim the values match rather than just bound each other.
+
+Questions on any of that, or should I keep going into KKT?
+
+Tutor Mode: ON · Unit 3/5 Weak and strong duality · step 4
+
+S: one at a time again
+
+T: Back to one concept per reply, `pace: default`. The KKT conditions are four
+requirements that a point must satisfy at a solution when strong duality
+holds, and the first is the one everything else hangs on: stationarity, which
+says the gradient of the Lagrangian in x is zero at the optimum. Make sense
+why it is the Lagrangian's gradient and not f's?
+
+Tutor Mode: ON · Unit 4/5 KKT conditions · step 1
+
 ## Skip quizzes
 
 S: skip quizzes, i'm in a rush

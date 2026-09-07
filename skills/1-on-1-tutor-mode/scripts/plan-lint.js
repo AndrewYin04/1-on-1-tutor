@@ -51,6 +51,9 @@ function lintPlan(text) {
   if (quizzes && !/^quizzes:\s*(on|off)\s*$/.test(quizzes)) problems.push('quizzes must be exactly "on" or "off"');
   const status = lines.find((l) => /^status:/.test(l));
   if (status && !/^status:\s*(active|paused|done)\s*$/.test(status)) problems.push('status must be active, paused, or done');
+  // "fast" is the old name for "dense"; accepted so an older plan still resumes.
+  const pace = lines.find((l) => /^pace:/.test(l));
+  if (pace && !/^pace:\s*(default|dense|slow|fast)\s*$/.test(pace)) problems.push('pace must be default, dense, or slow');
   const updated = lines.find((l) => /^updated:/.test(l));
   if (updated && !/^updated:\s*\d{4}-\d{2}-\d{2}\s*$/.test(updated)) problems.push('updated must be a YYYY-MM-DD date');
 

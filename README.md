@@ -82,7 +82,8 @@ What happens:
    `tutor-sessions/<slug>/plan.md`, and shows you the outline to confirm.
 3. Teaching: one concept per reply, as long as clarity needs and no longer,
    ending with "make sense?" or a micro-question. You say "yeah", ask a
-   follow-up, or push back; the next chunk builds on what you confirmed.
+   follow-up, or push back; the next chunk builds on what you confirmed. Say
+   "faster" or "just explain it" and it switches to dense replies instead.
 
 Things you can say at any point:
 
@@ -91,7 +92,8 @@ Things you can say at any point:
 | "yeah", "ok", "next" | marks the step done, delivers the next chunk |
 | "I don't get it" | re-explains from a different angle, never the same words |
 | "I already know this" | asks one probing question, skips the unit if you pass |
-| "slower" / "faster" | changes step size and records it in the plan |
+| "faster", "go dense", "just explain it" | switches to dense replies, several concepts at once |
+| "one at a time", "slower" | back to one concept per reply, then to smaller steps |
 | "skip quizzes" / "quizzes on" | toggles the end-of-concept micro-questions |
 | "where are we" | three lines: goal, position, what comes next |
 | "show me the plan" | the outline with status markers |
@@ -107,7 +109,8 @@ Things you can say at any point:
   limit; a concept gets the length clarity needs. What is limited is filler:
   no sentence that only announces the next one ("this is the subtle part"),
   no empty clause before a colon, no slogan after a dash, no praise opener, no
-  em-dashes inside a sentence. The rules and rewrites of real replies are in
+  em-dashes inside a sentence. Dense pace lifts the one-concept limit and
+  changes nothing else. The rules and rewrites of real replies are in
   `skills/1-on-1-tutor-mode/references/writing.md`.
 - **The plan file.** `tutor-sessions/<slug>/plan.md` has fixed headings: goal,
   student profile, materials, outline (coarse units with "done when" tests),
@@ -115,6 +118,13 @@ Things you can say at any point:
   misconceptions caught, session log. It is the source of truth; the chat is
   disposable. That is what keeps the conversation from turning into an ocean of
   text you have to search: nothing important lives only in the scrollback.
+- **Pace.** `pace:` in the plan is `default` (one concept per reply), `dense`,
+  or `slow`. In dense mode Claude answers your question directly first, then
+  teaches several steps at a time as continuous prose, up to one unit per
+  reply, with one check at the end instead of one per idea. Corrections, the
+  Learn Later offer, the plan updates, the footer, and the no-filler rules all
+  still apply, so speed costs you the per-idea stop and nothing else. Say
+  "one at a time" to go back.
 - **Two-tier plan.** A stable coarse outline plus a detailed expansion of only
   the current unit. A fully detailed plan goes stale as soon as a gap appears;
   a broad-only plan loses the thread of what to build on next.

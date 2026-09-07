@@ -19,7 +19,7 @@
 # hook uses (block tier), so filler is caught on the resumed turns too. There
 # is no length assertion: a concept takes the words clarity needs.
 #
-# Usage:  tests/e2e.sh [--scenario jackson|materials|all] [--keep]
+# Usage:  tests/e2e.sh [--scenario jackson|materials|dense|all] [--keep]
 # Env:    E2E_WORKDIR  scratch directory (default: mktemp -d)
 #         CLAUDE_BIN   claude binary (default: claude on PATH)
 #         E2E_MODEL    optional --model override for the runs
@@ -117,6 +117,13 @@ assert_hook_ran()   {
     bad "Stop hook left no trace in tutor-sessions/.hook.log on the invoking turn"
   fi
 }
+
+# The template's own legend line ("Status markers: `[ ]` todo ... `[x]` done")
+# contains every marker, so it is excluded from both counts.
+no_legend()     { grep -v 'Status markers'; }
+plan_x_count()  { local f; f="$(plan_file)"; if [ -n "$f" ]; then no_legend < "$f" | grep -c '\[x\]'; else echo 0; fi; }
+outline_done()  { local f; f="$(plan_file)"; if [ -n "$f" ]; then section_lines "$f" Outline | no_legend | grep -c '\[x\]'; else echo 0; fi; }
+words_of()      { printf '%s\n' "$1" | wc -w; }
 
 section_lines() { # section_lines <plan> <heading>  -> prints the section body
   awk -v h="# $2" 'BEGIN{p=0} { if ($0==h) {p=1; next} if (p && $0 ~ /^# /) exit; if (p) print }' "$1"
@@ -223,6 +230,47 @@ scenario_materials() {
   assert_plan_lint
 }
 
+# ---- scenario 3: dense pace ------------------------------------------------
+#
+# The student asks for speed. Dense replies must cover several steps at once
+# and still carry the footer, the plan update, and no filler. Then the student
+# asks to go back, and the pace field must return to default.
+
+scenario_dense() {
+  log "=== scenario: dense (pace switch, several concepts per reply) ==="
+  local dir="$work/dense"; rm -rf "$dir"; mkdir -p "$dir/tutor-sessions"; cd "$dir"; SID=""
+  run "/1-on-1-tutor-mode Michael Jackson. Goal: an overview of his life and why he mattered culturally. No deadline. I know basically nothing. Standard depth. Plan it and show me the outline."
+  assert_footer; assert_clean
+  assert_plan_has "pace: default" "^pace: *default"
+
+  run "looks good, go"
+  assert_footer; assert_clean
+  local chunked_words chunked_x outline_before
+  chunked_words="$(words_of "$RESULT")"; chunked_x="$(plan_x_count)"; outline_before="$(outline_done)"
+  log "chunked reply: $chunked_words words, $chunked_x done markers in the plan"
+
+  run "this is too slow, just explain it, cover more at once"
+  assert_footer; assert_clean
+  assert_plan_has "pace: dense" "^pace: *dense"
+  assert_plan_touched "steps closed by the dense reply"
+  local dense_words dense_x
+  dense_words="$(words_of "$RESULT")"; dense_x="$(plan_x_count)"
+  log "dense reply: $dense_words words, $dense_x done markers in the plan"
+  if [ "$dense_words" -gt "$chunked_words" ]; then ok "dense reply covers more than the chunked one ($dense_words vs $chunked_words words)"; else bad "dense reply is not longer than the chunked one ($dense_words vs $chunked_words words)"; fi
+  # Either several steps closed inside the unit, or a whole unit finished.
+  if [ $((dense_x - chunked_x)) -ge 2 ] || [ "$(outline_done)" -gt "$outline_before" ]; then
+    ok "dense reply closed several steps at once ($chunked_x -> $dense_x done markers)"
+  else
+    bad "dense reply closed too little ($chunked_x -> $dense_x done markers, outline units done $outline_before -> $(outline_done))"
+  fi
+  assert_plan_lint
+
+  run "one at a time"
+  assert_footer; assert_clean
+  assert_plan_has "pace back to default" "^pace: *default"
+  assert_plan_lint
+}
+
 # ---- main -----------------------------------------------------------------
 
 log "workdir: $work"
@@ -230,7 +278,8 @@ log "claude:  $("$claude_bin" --version 2>/dev/null || echo unknown)"
 case "$scenario" in
   jackson) scenario_jackson ;;
   materials) scenario_materials ;;
-  all) scenario_jackson; scenario_materials ;;
+  dense) scenario_dense ;;
+  all) scenario_jackson; scenario_materials; scenario_dense ;;
   *) echo "unknown scenario: $scenario" >&2; exit 2 ;;
 esac
 log ""

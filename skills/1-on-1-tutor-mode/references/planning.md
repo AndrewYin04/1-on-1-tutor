@@ -131,8 +131,13 @@ mid-session. When they do:
 
 - `depth`: `overview`, `standard`, `deep`. Set at intake; the student can
   change it for a single unit ("go deep on this one").
-- `pace`: `default`, `fast`, `slow`. `fast` means skip examples the student
-  did not ask for and probe before teaching; `slow` means split steps further.
+- `pace`: `default`, `dense`, `slow`. `default` is one concept per reply.
+  `dense` is several concepts per reply for a student who wants ground covered
+  fast, bounded at one unit per reply, with the question answered directly
+  first and one check at the end; the full shape is in `SKILL.md` under Pace.
+  `slow` splits steps further. `fast` in an older plan means `dense`.
+  A dense reply usually closes several steps at once, so mark every step it
+  covered and move `# Position` to the last one.
 - `quizzes`: `on` or `off`. Off means checks are "make sense?" only. Still
   correct misconceptions and still write the "done when" tests.
 

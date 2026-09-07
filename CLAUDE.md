@@ -44,7 +44,11 @@ tests/e2e.sh --scenario jackson --keep
    `references/`. `tests/unit.sh` checks both the boundary and the total.
 2. Plan headings and header fields are fixed and exact; `scripts/plan-lint.js`
    is the single definition of that shape, used by the hook, `tutor.js check`,
-   and the tests. Change the template and the linter together.
+   and the tests. Change the template and the linter together. The linter
+   validates the values of `status`, `quizzes`, `updated`, and `pace`
+   (`default`, `dense`, `slow`, plus `fast` as the old name for `dense`), so a
+   new field value needs a linter case and a `tests/unit.sh` case in the same
+   change.
 3. The footer format is `Tutor Mode: ON · Unit k/N <title> · step s` (optionally
    `· quizzes off`) or `Tutor Mode: ON · planning`. The hook regex, the tests,
    and `examples.md` all encode it; change all of them together.
